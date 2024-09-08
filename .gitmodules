@@ -1,0 +1,3 @@
+[submodule "odin-GameNetworkingSockets"]
+	path = odin-GameNetworkingSockets
+	url = git@github.com:DanielGavin/odin-GameNetworkingSockets.git
