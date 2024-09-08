@@ -19,6 +19,9 @@ poll_group: steam.HSteamNetPollGroup
 clients: map[steam.HSteamNetConnection]Client
 
 setup_server :: proc(t: ^thread.Thread) {
+    fmt.println("mjauusssssu")
+
+    
     defer delete(clients)
     fmt.println("setup_server")
     interface = steam.v009()
@@ -49,6 +52,7 @@ setup_server :: proc(t: ^thread.Thread) {
         poll_local_user_input()
         // sleep
         time.sleep(1 * time.Second);
+
     }
 }
 
