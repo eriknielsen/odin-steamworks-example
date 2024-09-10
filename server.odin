@@ -14,30 +14,28 @@ Client :: struct {
     nick: cstring
 }
 
-interface: ^steam.INetworkingSockets
+interface_server: ^steam.INetworkingSockets
 poll_group: steam.HSteamNetPollGroup
 clients: map[steam.HSteamNetConnection]Client
 
 setup_server :: proc(t: ^thread.Thread) {
-    fmt.println("mjauusssssu")
-
-    
+    clients = make(map[steam.HSteamNetConnection]Client)
     defer delete(clients)
     fmt.println("setup_server")
-    interface = steam.v009()
+    interface_server = steam.v009()
 
-    server_addr: steam.SteamNetworkingIPAddr
-    steam.SteamNetworkingIPAddr_Clear(&server_addr)
-    server_addr.port = port
+    address: steam.SteamNetworkingIPAddr
+    steam.SteamNetworkingIPAddr_Clear(&address)
+    address.port = port
 
     opt: steam.SteamNetworkingConfigValue
     set_networkingconfigvalue(&opt, .CallbacConnectionStatusChanged, cast(rawptr)on_connection_status_changed_server)
-    listen_socket:= steam.NetworkingSockets_CreateListenSocketIP(&interface^, &server_addr, 1, &opt)
+    listen_socket:= steam.NetworkingSockets_CreateListenSocketIP(&interface_server^, &address, 1, &opt)
     if listen_socket == steam.HSteamListenSocket_Invalid {
         panic("failed to create listen socket ip")
     }
 
-    poll_group = steam.NetworkingSockets_CreatePollGroup(&interface^)
+    poll_group = steam.NetworkingSockets_CreatePollGroup(&interface_server^)
     if poll_group == steam.HSteamNetPollGroup_Invalid {
         panic("Failed to create poll group")
     }
@@ -46,18 +44,16 @@ setup_server :: proc(t: ^thread.Thread) {
 
     quit:= false
     for !quit {
-        fmt.println("server poll")
-        poll_incoming_messages()
         poll_connection_state_changes()
+        poll_incoming_messages()
         poll_local_user_input()
-        // sleep
         time.sleep(1 * time.Second);
 
     }
 }
 
 on_connection_status_changed_server :: proc(data: steam.SteamNetConnectionStatusChangedCallback) {
-    fmt.println("connection_status_changed_server")
+    fmt.println("[server] connection_status_changed")
 
     #partial switch data.info.eState {
         case .None:
@@ -78,18 +74,19 @@ on_connection_status_changed_server :: proc(data: steam.SteamNetConnectionStatus
             // and we cannot linger because it's already closed on the other end,
             // so we just pass 0's.
 
-            steam.NetworkingSockets_CloseConnection(interface, data.hConn, 0, nil, false)
+            steam.NetworkingSockets_CloseConnection(interface_server, data.hConn, 0, nil, false)
         case .Connecting:
-            fmt.println("Connection request from", data.info.szConnectionDescription)
+            fmt.println("[server] Connection request!")
 
-            if steam.NetworkingSockets_AcceptConnection(interface, data.hConn) != steam.EResult.OK {
-                steam.NetworkingSockets_CloseConnection(interface, data.hConn, 0, nil, false)
+            fmt.println("[server] accept connectiin")
+            if steam.NetworkingSockets_AcceptConnection(interface_server, data.hConn) != steam.EResult.OK {
+                steam.NetworkingSockets_CloseConnection(interface_server, data.hConn, 0, nil, false)
                 fmt.println("Can't accept connection (it was already closed?)")
                 break
             }
-
-            if !steam.NetworkingSockets_SetConnectionPollGroup(interface, data.hConn, poll_group) {
-                steam.NetworkingSockets_CloseConnection(interface, data.hConn, 0, nil, false)
+            fmt.println("[server] set connection poll gorup")
+            if !steam.NetworkingSockets_SetConnectionPollGroup(interface_server, data.hConn, poll_group) {
+                steam.NetworkingSockets_CloseConnection(interface_server, data.hConn, 0, nil, false)
                 fmt.println("Failed to set poll group?")
                 break
             }
@@ -100,7 +97,7 @@ on_connection_status_changed_server :: proc(data: steam.SteamNetConnectionStatus
             // and you would keep their client in a state of limbo (connected,
             // but not logged on) until them.  I'm trying to keep this example
             // code really simple.
-
+            fmt.println("[server] make a client welcome")
             nick: cstring= "BraveWarror"
             welcome_message: cstring = "Welcome strangur"
             send_string_to_client(data.hConn, &welcome_message)
@@ -124,17 +121,20 @@ on_connection_status_changed_server :: proc(data: steam.SteamNetConnectionStatus
 
 send_string_to_client :: proc(conn: steam.HSteamNetConnection, str: ^cstring) {
     // 8 means reliable
-    steam.NetworkingSockets_SendMessageToConnection(interface, conn, str, u32(len(str)), 8, nil)
+    fmt.println("[server] send_string_to_client")
+    steam.NetworkingSockets_SendMessageToConnection(interface_server, conn, str, u32(len(str)), 8, nil)
 }
 
 poll_incoming_messages :: proc() {
-
+    // let users run commands
+    // pass messages from clients along to other clients
 }
 
 poll_connection_state_changes :: proc() {
-
+    fmt.println("[server] Run callbacks")
+    steam.NetworkingSockets_RunCallbacks(interface_server)
 }
 
 poll_local_user_input :: proc() {
-
+    // check if its time to cloes the server
 }

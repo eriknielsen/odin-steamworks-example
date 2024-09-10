@@ -5,11 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "game",
+            "name": "server",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "game1-steamworks.exe",
-            "args": [],
+            "program": "build/example.exe",
+            "args": ["server"],
+            "stopAtEntry": false,
+            "environment": [],
+            "console": "newExternalWindow",
+            "cwd": "${workspaceRoot}"
+        },
+        {
+            "name": "client",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "build/example.exe",
+            "args": ["client"],
             "stopAtEntry": false,
             "environment": [],
             "console": "newExternalWindow",
