@@ -1,7 +1,7 @@
 package steamworkstest
 
 import steam "odin-GameNetworkingSockets"
-
+import "core:bytes"
 import "core:c"
 import "core:fmt"
 import "core:mem"
@@ -15,6 +15,11 @@ import rl "vendor:raylib"
 port: u16 = 27020
 
 main :: proc() {
+    str:= "a string"
+    buffer: bytes.Buffer 
+    bytes.buffer_init_allocator(&buffer, 0, len(str), context.allocator)
+    defer bytes.buffer_destroy(&buffer)
+
     fmt.println("This is a Steamworks Game Networking example which expects 1 argument which is either server or client.")
 
     is_server:= false
@@ -38,6 +43,7 @@ main :: proc() {
         net_thread = thread.create(setup_server)
         if net_thread != nil {
             net_thread.init_context = context
+            net_thread.creation_allocator = context.allocator
             thread.start(net_thread)
         }
         else {

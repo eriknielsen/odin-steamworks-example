@@ -2,7 +2,9 @@ package steamworkstest
 
 import steam "odin-GameNetworkingSockets"
 
+import "core:bytes"
 import "core:c"
+
 import "core:fmt"
 import "core:mem"
 import "base:runtime"
@@ -19,6 +21,11 @@ poll_group: steam.HSteamNetPollGroup
 clients: map[steam.HSteamNetConnection]Client
 
 setup_server :: proc(t: ^thread.Thread) {
+    str:= "a string"
+    buffer: bytes.Buffer 
+    bytes.buffer_init_allocator(&buffer, 0, len(str), runtime.default_allocator())
+    defer bytes.buffer_destroy(&buffer)
+
     clients = make(map[steam.HSteamNetConnection]Client)
     defer delete(clients)
     fmt.println("setup_server")
@@ -123,12 +130,17 @@ send_string_to_client :: proc(conn: steam.HSteamNetConnection, str: string) {
     // 8 means reliable
     fmt.println("[server] send_string_to_client", str)
     fmt.println("[server] send string of ", u32(len(str)))
-    bytes:= transmute([]u8)str
-    length:= u32(len(bytes))
-    //string_text:= strings.string_from_ptr(cast([^]byte)&bytes, int(length))
-    //fmt.println(string_text)
+    buffer: bytes.Buffer 
+    bytes.buffer_init_allocator(&buffer, 0, len(str), runtime.default_allocator())
+    defer bytes.buffer_destroy(&buffer)
+    a_number: byte = 42
+    bytes.buffer_write_byte(&buffer, a_number)
+    bytes.buffer_write_string(&buffer, str)
+    length:= u32(bytes.buffer_length(&buffer))
+    actual_bytes:= bytes.buffer_to_bytes(&buffer)
 
-    steam.NetworkingSockets_SendMessageToConnection(interface_server, conn, &bytes, length, 8, nil)
+    steam.NetworkingSockets_SendMessageToConnection(interface_server, conn, &actual_bytes, length, 8, nil)
+    
 }
 
 poll_incoming_messages :: proc() {
