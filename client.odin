@@ -9,6 +9,7 @@ import "base:runtime"
 import "core:strings"
 import "core:time"
 import "core:thread"
+import "core:slice"
 
 interface_client: ^steam.INetworkingSockets
 net_connection_client: steam.HSteamNetConnection
@@ -39,24 +40,26 @@ poll_connection_state_changes_client :: proc() {
 poll_incoming_messages_client :: proc() {
     fmt.println("[client] poll_incoming_messages_client")
     // the example has a loop in here but why?
-    incomingMsg: ^^steam.SteamNetworkingMessage = nil
+    incomingMsg: ^steam.SteamNetworkingMessage
 
-    numMsgs:= steam.NetworkingSockets_ReceiveMessagesOnConnection(interface_client, net_connection_client, incomingMsg, 1)
+    numMsgs:= steam.NetworkingSockets_ReceiveMessagesOnConnection(interface_client, net_connection_client, &incomingMsg, 1)
     if numMsgs == 0 {
-        fmt.println("[client] no new messages")
         return
     }
     else if numMsgs < 0 {
         panic("[client] something went wrong when reading msgs")
     }
-    fmt.println("[client] read the msg")
-    
-    // Just echo anything we get from the server
-    cstring_text:= cstring(incomingMsg^.pData)
-    //text:= strings.string_from_ptr(incomingMsg.pData, incomingMsg.cbSize)
-    fmt.println("[client]", cstring_text)
+    fmt.println("[client] read the msg which has length of ", incomingMsg.cbSize)
 
-    steam.SteamNetworkingMessage_t_Release(incomingMsg^)
+    bytes:= slice.bytes_from_ptr(incomingMsg.pData, int(incomingMsg.cbSize))
+    string_text:= string(bytes)
+    fmt.println("[client]", string_text)
+
+    // -- this also works --
+    string_text = strings.string_from_ptr(cast([^]byte)incomingMsg.pData, int(incomingMsg.cbSize))
+    fmt.println("[client]", string_text)
+
+    steam.SteamNetworkingMessage_t_Release(incomingMsg)
 }
 
 on_connection_status_changed_client :: proc(data: steam.SteamNetConnectionStatusChangedCallback) {

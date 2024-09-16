@@ -6,12 +6,14 @@
         {
             "label": "run",
             "type": "shell",
-            "command": "& build/example.exe"
+            "command": "& build/example.exe",
+            "problemMatcher": []
         },
         {
             "label": "build",
             "type": "shell",
-            "command": "odin build . --out:build/example.exe"
+            "command": "odin build . --out:build/example.exe -debug",
+            "problemMatcher": []
         }
     ]
 }

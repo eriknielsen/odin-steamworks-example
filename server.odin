@@ -11,7 +11,7 @@ import "core:time"
 import "core:thread"
 
 Client :: struct {
-    nick: cstring
+    nick: string
 }
 
 interface_server: ^steam.INetworkingSockets
@@ -98,9 +98,9 @@ on_connection_status_changed_server :: proc(data: steam.SteamNetConnectionStatus
             // but not logged on) until them.  I'm trying to keep this example
             // code really simple.
             fmt.println("[server] make a client welcome")
-            nick: cstring= "BraveWarror"
-            welcome_message: cstring = "Welcome strangur"
-            send_string_to_client(data.hConn, &welcome_message)
+            nick: string= "BraveWarror"
+            welcome_message: string = "Welcome strangur"
+            send_string_to_client(data.hConn, welcome_message)
 
             // Also send them a list of everybody who is already connected
 
@@ -119,10 +119,16 @@ on_connection_status_changed_server :: proc(data: steam.SteamNetConnectionStatus
     }
 }
 
-send_string_to_client :: proc(conn: steam.HSteamNetConnection, str: ^cstring) {
+send_string_to_client :: proc(conn: steam.HSteamNetConnection, str: string) {
     // 8 means reliable
-    fmt.println("[server] send_string_to_client")
-    steam.NetworkingSockets_SendMessageToConnection(interface_server, conn, str, u32(len(str)), 8, nil)
+    fmt.println("[server] send_string_to_client", str)
+    fmt.println("[server] send string of ", u32(len(str)))
+    bytes:= transmute([]u8)str
+    length:= u32(len(bytes))
+    //string_text:= strings.string_from_ptr(cast([^]byte)&bytes, int(length))
+    //fmt.println(string_text)
+
+    steam.NetworkingSockets_SendMessageToConnection(interface_server, conn, &bytes, length, 8, nil)
 }
 
 poll_incoming_messages :: proc() {
